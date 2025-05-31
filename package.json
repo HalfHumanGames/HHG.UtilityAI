@@ -1,0 +1,23 @@
+{
+  "name": "com.halfhumangames.utilityai",
+  "version": "1.0.0",
+  "displayName": "HHG - Utility AI",
+  "description": "Utility AI system for Unity",
+  "unity": "2020.3",
+  "unityRelease": "6f1",
+  "documentationUrl": "https://github.com/HalfHumanGames/HHG.UtilityAI/blob/main/README.md",
+  "changelogUrl": "https://github.com/HalfHumanGames/HHG.UtilityAI/blob/main/CHANGELOG.md",
+  "licensesUrl": "https://github.com/HalfHumanGames/HHG.UtilityAI/blob/main/LICENSE",
+  "keywords": [
+    "Utility AI",
+    "AI"
+  ],
+  "author": {
+    "name": "Half Human Games",
+    "email": "contact@halfhumangames.com",
+    "url": "https://github.com/HalfHumanGames"
+  },
+  "dependencies": {
+    "com.halfhumangames.common": "1.0.0"
+  }
+}
