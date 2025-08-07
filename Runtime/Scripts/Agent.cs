@@ -1,7 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using UnityEngine;
 
 namespace HHG.UtilityAI.Runtime
 {
@@ -15,7 +14,7 @@ namespace HHG.UtilityAI.Runtime
 
         public Agent(
             IContextProvider<TContext> contextProvider,
-            ITaskBuilder<TContext> taskBuilder, 
+            ITaskBuilder<TContext> taskBuilder,
             ITaskSelector<TContext> taskSelector = null)
         {
             this.contextProvider = contextProvider;
@@ -38,23 +37,31 @@ namespace HHG.UtilityAI.Runtime
                     float totalScore = 0f;
                     float totalWeight = 0f;
 
+                    bool invalid = false;
                     foreach (var consideration in task.Considerations)
                     {
-                        float score = consideration.Score(task, context);
-                        totalScore += score * consideration.Weight;
-                        totalWeight += consideration.Weight;
+                        if (consideration.TryScore(task, context, out float score))
+                        {
+                            totalScore += score * consideration.Weight;
+                            totalWeight += consideration.Weight;
+                        }
+                        else
+                        {
+                            invalid = true;
+                            break;
+                        }
                     }
 
-                    if (totalWeight <= 0f) continue;
+                    if (invalid) continue;
 
                     float finalScore = totalScore / totalWeight;
                     scoredTasks[task] = finalScore;
                 }
 
                 var selected = taskSelector.Select(scoredTasks);
-                
+
                 if (selected == null) yield break;
-                
+
                 var execution = Flatten(selected.Execute(context));
 
                 while (execution.MoveNext())

@@ -18,7 +18,7 @@ namespace HHG.UtilityAI.Runtime
         {
             if (Random.Range(0f, 1f) < epsilon)
             {
-                return scoredTasks.Keys.GetRandom();
+                return scoredTasks.Keys.RandomOrDefault();
             }
 
             return scoredTasks.OrderByDescending(kv => kv.Value).FirstOrDefault().Key;
