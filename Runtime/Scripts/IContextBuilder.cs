@@ -5,5 +5,6 @@ namespace HHG.UtilityAI.Runtime
     public interface IContextBuilder<TContext>
     {
         public IEnumerator BuildContextAsync(TContext context);
+        public void Dispose(TContext context) { }
     }
 }

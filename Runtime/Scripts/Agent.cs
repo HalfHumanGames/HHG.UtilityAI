@@ -11,11 +11,11 @@ namespace HHG.UtilityAI.Runtime
         private readonly IContextBuilder<TContext> contextBuilder;
         private readonly ITaskBuilder<TContext> taskBuilder;
         private readonly ITaskSelector<TContext> taskSelector;
+        private readonly List<Task<TContext>> tasks = new();
         private readonly Dictionary<Task<TContext>, float> scoredTasks = new();
         private readonly Stack<IEnumerator> executionStack = new();
         private readonly int sliceSize = 100;
         private readonly TContext context = new();
-        private readonly List<Task<TContext>> tasks = new();
 
         public Agent(
             IContextBuilder<TContext> contextBuilder,
@@ -33,6 +33,7 @@ namespace HHG.UtilityAI.Runtime
         {
             while (true)
             {
+                tasks.Clear();
                 scoredTasks.Clear();
 
                 // Builders are async in case need to get
@@ -72,6 +73,10 @@ namespace HHG.UtilityAI.Runtime
                 }
 
                 if (execution.Current is not ReplanRequest) break;
+
+                // Optional builder cleanup
+                contextBuilder.Dispose(context);
+                taskBuilder.Dispose(tasks);
             }
         }
 
