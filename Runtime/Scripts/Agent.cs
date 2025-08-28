@@ -6,23 +6,24 @@ using UnityEngine;
 
 namespace HHG.UtilityAI.Runtime
 {
-    public class Agent<TContext>
+    public class Agent<TContext> where TContext : class, new()
     {
-        private readonly IContextProvider<TContext> contextProvider;
+        private readonly IContextBuilder<TContext> contextBuilder;
         private readonly ITaskBuilder<TContext> taskBuilder;
         private readonly ITaskSelector<TContext> taskSelector;
-        private readonly Dictionary<Task<TContext>, float> scoredTasks = new Dictionary<Task<TContext>, float>();
-        private readonly Stack<IEnumerator> executionStack = new Stack<IEnumerator>();
+        private readonly Dictionary<Task<TContext>, float> scoredTasks = new();
+        private readonly Stack<IEnumerator> executionStack = new();
         private readonly int sliceSize = 100;
-        private TContext context;
+        private readonly TContext context = new();
+        private readonly List<Task<TContext>> tasks = new();
 
         public Agent(
-            IContextProvider<TContext> contextProvider,
+            IContextBuilder<TContext> contextBuilder,
             ITaskBuilder<TContext> taskBuilder,
             ITaskSelector<TContext> taskSelector = null,
             int sliceSize = -1)
         {
-            this.contextProvider = contextProvider;
+            this.contextBuilder = contextBuilder;
             this.taskBuilder = taskBuilder;
             this.taskSelector = taskSelector ?? new GreedySelector<TContext>();
             this.sliceSize = sliceSize;
@@ -34,18 +35,23 @@ namespace HHG.UtilityAI.Runtime
             {
                 scoredTasks.Clear();
 
-                context = contextProvider.GetContext();
+                // Builders are async in case need to get
+                // data over several frames for any reason
+                yield return contextBuilder.BuildContextAsync(context);
 
                 // Context building may be processor intensive
                 // so wait a frame before building tasks
                 yield return new WaitForEndOfFrame();
 
-                var tasks = taskBuilder.BuildTasks(context);
+                // Builders are async in case need to get
+                // data over several frames for any reason
+                yield return taskBuilder.BuildTasksAsync(context, tasks);
 
                 // Building tasks may also be processor intensive
                 // so wait a frame before scoring tasks
                 yield return new WaitForEndOfFrame();
 
+                // Filter out invalid tasks that break any rules
                 var validTasks = tasks.Where(t => t.Rules.All(r => r.IsValid(t, context)));
 
                 // Scoring tasks may also be processor intensive

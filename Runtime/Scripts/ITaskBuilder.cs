@@ -1,9 +1,10 @@
+using System.Collections;
 using System.Collections.Generic;
 
 namespace HHG.UtilityAI.Runtime
 {
     public interface ITaskBuilder<TContext>
     {
-        public IReadOnlyList<Task<TContext>> BuildTasks(TContext context);
+        public IEnumerator BuildTasksAsync(TContext context, List<Task<TContext>> tasks);
     }
 }
