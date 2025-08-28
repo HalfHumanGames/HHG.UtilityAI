@@ -1,6 +1,8 @@
+using HHG.Common.Runtime;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using UnityEngine;
 
 namespace HHG.UtilityAI.Runtime
 {
@@ -11,15 +13,19 @@ namespace HHG.UtilityAI.Runtime
         private readonly ITaskSelector<TContext> taskSelector;
         private readonly Dictionary<Task<TContext>, float> scoredTasks = new Dictionary<Task<TContext>, float>();
         private readonly Stack<IEnumerator> executionStack = new Stack<IEnumerator>();
+        private readonly int sliceSize = 100;
+        private TContext context;
 
         public Agent(
             IContextProvider<TContext> contextProvider,
             ITaskBuilder<TContext> taskBuilder,
-            ITaskSelector<TContext> taskSelector = null)
+            ITaskSelector<TContext> taskSelector = null,
+            int sliceSize = -1)
         {
             this.contextProvider = contextProvider;
             this.taskBuilder = taskBuilder;
             this.taskSelector = taskSelector ?? new GreedySelector<TContext>();
+            this.sliceSize = sliceSize;
         }
 
         public IEnumerator Execute()
@@ -28,35 +34,23 @@ namespace HHG.UtilityAI.Runtime
             {
                 scoredTasks.Clear();
 
-                var context = contextProvider.GetContext();
+                context = contextProvider.GetContext();
+
+                // Context building may be processor intensive
+                // so wait a frame before building tasks
+                yield return new WaitForEndOfFrame();
+
                 var tasks = taskBuilder.BuildTasks(context);
+
+                // Building tasks may also be processor intensive
+                // so wait a frame before scoring tasks
+                yield return new WaitForEndOfFrame();
+
                 var validTasks = tasks.Where(t => t.Rules.All(r => r.IsValid(t, context)));
 
-                foreach (var task in validTasks)
-                {
-                    float totalScore = 0f;
-                    float totalWeight = 0f;
-
-                    bool invalid = false;
-                    foreach (var consideration in task.Considerations)
-                    {
-                        if (consideration.TryScore(task, context, out float score))
-                        {
-                            totalScore += score * consideration.Weight;
-                            totalWeight += consideration.Weight;
-                        }
-                        else
-                        {
-                            invalid = true;
-                            break;
-                        }
-                    }
-
-                    if (invalid) continue;
-
-                    float finalScore = totalScore / totalWeight;
-                    scoredTasks[task] = finalScore;
-                }
+                // Scoring tasks may also be processor intensive
+                // So YieldSliced to score over several frames
+                yield return CoroutineUtil.YieldSliced(validTasks, sliceSize, ComputeScore);
 
                 var selected = taskSelector.Select(scoredTasks);
 
@@ -72,6 +66,33 @@ namespace HHG.UtilityAI.Runtime
                 }
 
                 if (execution.Current is not ReplanRequest) break;
+            }
+        }
+
+        private void ComputeScore(Task<TContext> task)
+        {
+            float totalScore = 0f;
+            float totalWeight = 0f;
+
+            bool valid = true;
+            foreach (var consideration in task.Considerations)
+            {
+                if (consideration.TryScore(task, context, out float score))
+                {
+                    totalScore += score * consideration.Weight;
+                    totalWeight += consideration.Weight;
+                }
+                else
+                {
+                    valid = false;
+                    break;
+                }
+            }
+
+            if (valid)
+            {
+                float finalScore = totalScore / totalWeight;
+                scoredTasks[task] = finalScore;
             }
         }
 
