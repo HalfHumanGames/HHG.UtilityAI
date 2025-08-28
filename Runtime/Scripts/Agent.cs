@@ -42,7 +42,7 @@ namespace HHG.UtilityAI.Runtime
 
                 // Context building may be processor intensive
                 // so wait a frame before building tasks
-                yield return new WaitForEndOfFrame();
+                yield return null;
 
                 // Builders are async in case need to get
                 // data over several frames for any reason
@@ -50,7 +50,7 @@ namespace HHG.UtilityAI.Runtime
 
                 // Building tasks may also be processor intensive
                 // so wait a frame before scoring tasks
-                yield return new WaitForEndOfFrame();
+                yield return null;
 
                 // Filter out invalid tasks that break any rules
                 var validTasks = tasks.Where(t => t.Rules.All(r => r.IsValid(t, context)));
@@ -72,11 +72,11 @@ namespace HHG.UtilityAI.Runtime
                     yield return execution.Current;
                 }
 
-                if (execution.Current is not ReplanRequest) break;
-
                 // Optional builder cleanup
                 contextBuilder.Dispose(context);
                 taskBuilder.Dispose(tasks);
+
+                if (execution.Current is not ReplanRequest) break;
             }
         }
 
