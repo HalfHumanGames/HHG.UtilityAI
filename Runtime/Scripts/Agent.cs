@@ -2,7 +2,6 @@ using HHG.Common.Runtime;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using UnityEngine;
 
 namespace HHG.UtilityAI.Runtime
 {
@@ -65,9 +64,15 @@ namespace HHG.UtilityAI.Runtime
 
                 var execution = Flatten(selected.Execute(context));
 
+                bool cancel = false;
+                bool replan = false;
+
                 while (execution.MoveNext())
                 {
-                    if (execution.Current is ReplanRequest) break;
+                    cancel = execution.Current is CancelRequest;
+                    replan = execution.Current is ReplanRequest;
+
+                    if (cancel || replan) break;
 
                     yield return execution.Current;
                 }
@@ -76,7 +81,8 @@ namespace HHG.UtilityAI.Runtime
                 contextBuilder.Dispose(context);
                 taskBuilder.Dispose(tasks);
 
-                if (execution.Current is not ReplanRequest) break;
+                // Exit if done or cancelled
+                if (!replan) yield break;
             }
         }
 
@@ -141,7 +147,10 @@ namespace HHG.UtilityAI.Runtime
     public class ReplanRequest
     {
         public static readonly ReplanRequest Instance = new ReplanRequest();
+    }
 
-        private ReplanRequest() { }
+    public class CancelRequest
+    {
+        public static readonly CancelRequest Instance = new CancelRequest();
     }
 }
