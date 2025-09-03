@@ -56,7 +56,7 @@ namespace HHG.UtilityAI.Runtime
 
                 // Scoring tasks may also be processor intensive
                 // So YieldSliced to score over several frames
-                yield return CoroutineUtil.YieldSliced(validTasks, sliceSize, ComputeScore);
+                yield return CoroutineUtil.WaitForSliced(validTasks, sliceSize, ComputeScore);
 
                 var selected = taskSelector.Select(scoredTasks);
 
