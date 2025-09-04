@@ -55,8 +55,8 @@ namespace HHG.UtilityAI.Runtime
                 var validTasks = tasks.Where(t => t.Rules.All(r => r.IsValid(t, context)));
 
                 // Scoring tasks may also be processor intensive
-                // So YieldSliced to score over several frames
-                yield return CoroutineUtil.WaitForSliced(validTasks, sliceSize, ComputeScore);
+                // So use StartCoroutineSliced to do over several frames
+                yield return CoroutineUtil.StartCoroutineSliced(validTasks, sliceSize, ComputeScore);
 
                 var selected = taskSelector.Select(scoredTasks);
 
