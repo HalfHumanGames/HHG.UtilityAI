@@ -58,23 +58,23 @@ namespace HHG.UtilityAI.Runtime
                 // So use StartCoroutineSliced to do over several frames
                 yield return CoroutineUtil.StartCoroutineSliced(validTasks, sliceSize, ComputeScore);
 
-                var selected = taskSelector.Select(scoredTasks);
-
-                if (selected == null) yield break;
-
-                var execution = Flatten(selected.Execute(context));
-
                 bool cancel = false;
                 bool replan = false;
+                var selected = taskSelector.Select(scoredTasks);
 
-                while (execution.MoveNext())
+                if (selected != null)
                 {
-                    cancel = execution.Current is CancelRequest;
-                    replan = execution.Current is ReplanRequest;
+                    var execution = Flatten(selected.Execute(context));
 
-                    if (cancel || replan) break;
+                    while (execution.MoveNext())
+                    {
+                        cancel = execution.Current is CancelRequest;
+                        replan = execution.Current is ReplanRequest;
 
-                    yield return execution.Current;
+                        if (cancel || replan) break;
+
+                        yield return execution.Current;
+                    }
                 }
 
                 // Optional builder cleanup
