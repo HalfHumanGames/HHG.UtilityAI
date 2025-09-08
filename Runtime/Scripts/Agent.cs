@@ -68,12 +68,13 @@ namespace HHG.UtilityAI.Runtime
 
                     while (execution.MoveNext())
                     {
-                        cancel = execution.Current is CancelRequest;
-                        replan = execution.Current is ReplanRequest;
+                        object current = execution.Current;
+                        cancel = current is CancelRequest;
+                        replan = current is ReplanRequest;
 
                         if (cancel || replan) break;
 
-                        yield return execution.Current;
+                        yield return current;
                     }
                 }
 
