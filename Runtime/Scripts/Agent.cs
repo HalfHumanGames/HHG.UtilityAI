@@ -72,6 +72,9 @@ namespace HHG.UtilityAI.Runtime
                         cancel = current is CancelRequest;
                         replan = current is ReplanRequest;
 
+                        // Do not yield break! Must break the loop
+                        // so code can continue to allow builders
+                        // to dispose of the context and task list
                         if (cancel || replan) break;
 
                         yield return current;
@@ -83,7 +86,7 @@ namespace HHG.UtilityAI.Runtime
                 taskBuilder.Dispose(tasks);
 
                 // Exit if done or cancelled
-                if (!replan) yield break;
+                if (!replan) break;
             }
         }
 
