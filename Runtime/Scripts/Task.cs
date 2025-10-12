@@ -5,6 +5,8 @@ namespace HHG.UtilityAI.Runtime
 {
     public abstract class Task<TContext>
     {
+        public virtual float Weight => 1f;
+
         public IReadOnlyList<IRule<TContext>> Rules => rules;
         public IReadOnlyList<IConsideration<TContext>> Considerations => considerations;
 

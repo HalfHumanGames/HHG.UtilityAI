@@ -90,31 +90,25 @@ namespace HHG.UtilityAI.Runtime
             }
         }
 
+        // Compute score as a weighted average
         private void ComputeScore(Task<TContext> task)
         {
             float totalScore = 0f;
             float totalWeight = 0f;
 
-            bool valid = true;
             foreach (var consideration in task.Considerations)
             {
-                if (consideration.TryScore(task, context, out float score))
+                if (!consideration.TryScore(task, context, out float score))
                 {
-                    totalScore += score * consideration.Weight;
-                    totalWeight += consideration.Weight;
+                    return;
                 }
-                else
-                {
-                    valid = false;
-                    break;
-                }
+
+                totalScore += score * consideration.Weight;
+                totalWeight += consideration.Weight;
             }
 
-            if (valid)
-            {
-                float finalScore = totalScore / totalWeight;
-                scoredTasks[task] = finalScore;
-            }
+            float finalScore = totalWeight == 0f ? 0f : totalScore / totalWeight * task.Weight;
+            scoredTasks[task] = finalScore;
         }
 
         // Need to flatten the exection enumerator in order
