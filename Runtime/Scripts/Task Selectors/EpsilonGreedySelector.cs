@@ -24,5 +24,4 @@ namespace HHG.UtilityAI.Runtime
             return scoredTasks.OrderByDescending(kv => kv.Value).FirstOrDefault().Key;
         }
     }
-
 }
