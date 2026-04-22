@@ -5,7 +5,7 @@ using System.Linq;
 
 namespace HHG.UtilityAI.Runtime
 {
-    public class Agent<TContext> where TContext : class, new()
+    public class Agent<TContext> : IAgent where TContext : class, new()
     {
         private readonly IContextBuilder<TContext> contextBuilder;
         private readonly ITaskBuilder<TContext> taskBuilder;
@@ -113,7 +113,7 @@ namespace HHG.UtilityAI.Runtime
 
         // Need to flatten the exection enumerator in order
         // to catch and handle replan requests properly.
-        public IEnumerator Flatten(IEnumerator enumerator)
+        private IEnumerator Flatten(IEnumerator enumerator)
         {
             executionStack.Clear();
             executionStack.Push(enumerator);
