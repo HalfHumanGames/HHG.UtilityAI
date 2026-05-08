@@ -13,8 +13,11 @@ namespace HHG.UtilityAI.Runtime
         private readonly List<Task<TContext>> tasks = new();
         private readonly Dictionary<Task<TContext>, float> scoredTasks = new();
         private readonly Stack<IEnumerator> executionStack = new();
-        private readonly int sliceSize = 100;
         private readonly TContext context = new();
+        private readonly int sliceSize = 100;
+
+        private bool cancelRequested;
+        private bool replanRequested;
 
         public Agent(
             IContextBuilder<TContext> contextBuilder,
@@ -27,6 +30,9 @@ namespace HHG.UtilityAI.Runtime
             this.taskSelector = taskSelector ?? new GreedySelector<TContext>();
             this.sliceSize = sliceSize;
         }
+
+        public void RequestCancel() => cancelRequested = true;
+        public void RequestReplan() => replanRequested = true;
 
         public IEnumerator Execute()
         {
@@ -69,8 +75,8 @@ namespace HHG.UtilityAI.Runtime
                     while (execution.MoveNext())
                     {
                         object current = execution.Current;
-                        cancel = current is CancelRequest;
-                        replan = current is ReplanRequest;
+                        cancel = cancelRequested || current is CancelRequest;
+                        replan = replanRequested || current is ReplanRequest;
 
                         // Do not yield break! Must break the loop
                         // so code can continue to allow builders
@@ -81,9 +87,7 @@ namespace HHG.UtilityAI.Runtime
                     }
                 }
 
-                // Optional builder cleanup
-                contextBuilder.Dispose(context);
-                taskBuilder.Dispose(tasks);
+                Cleanup();
 
                 // Exit if done or cancelled
                 if (!replan) break;
@@ -139,6 +143,17 @@ namespace HHG.UtilityAI.Runtime
                     yield return current;
                 }
             }
+        }
+
+        private void Cleanup()
+        {
+            // Reset request flags
+            cancelRequested = false;
+            replanRequested = false;
+
+            // Optional builder cleanup
+            contextBuilder.Dispose(context);
+            taskBuilder.Dispose(tasks);
         }
     }
 
