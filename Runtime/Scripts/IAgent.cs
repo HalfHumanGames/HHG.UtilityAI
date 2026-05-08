@@ -4,8 +4,13 @@ namespace HHG.UtilityAI.Runtime
 {
     public interface IAgent
     {
-        void RequestCancel();
-        void RequestReplan();
+        bool IsPaused { get; }
+
+        void Pause();
+        void Resume();
+        void Cancel();
+        void Replan();
+
         IEnumerator Execute();
     }
 }

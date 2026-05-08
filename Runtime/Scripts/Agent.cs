@@ -7,6 +7,8 @@ namespace HHG.UtilityAI.Runtime
 {
     public class Agent<TContext> : IAgent where TContext : class, new()
     {
+        public bool IsPaused => pauseRequested;
+
         private readonly IContextBuilder<TContext> contextBuilder;
         private readonly ITaskBuilder<TContext> taskBuilder;
         private readonly ITaskSelector<TContext> taskSelector;
@@ -16,6 +18,7 @@ namespace HHG.UtilityAI.Runtime
         private readonly TContext context = new();
         private readonly int sliceSize = 100;
 
+        private bool pauseRequested;
         private bool cancelRequested;
         private bool replanRequested;
 
@@ -31,8 +34,10 @@ namespace HHG.UtilityAI.Runtime
             this.sliceSize = sliceSize;
         }
 
-        public void RequestCancel() => cancelRequested = true;
-        public void RequestReplan() => replanRequested = true;
+        public void Pause() => pauseRequested = true;
+        public void Resume() => pauseRequested = false;
+        public void Cancel() => cancelRequested = true;
+        public void Replan() => replanRequested = true;
 
         public IEnumerator Execute()
         {
@@ -64,8 +69,10 @@ namespace HHG.UtilityAI.Runtime
                 // So use StartCoroutineSliced to do over several frames
                 yield return CoroutineUtil.StartCoroutineSliced(validTasks, sliceSize, ComputeScore);
 
+                bool pause = false;
                 bool cancel = false;
                 bool replan = false;
+
                 var selected = taskSelector.Select(scoredTasks);
 
                 if (selected != null)
@@ -74,14 +81,32 @@ namespace HHG.UtilityAI.Runtime
 
                     while (execution.MoveNext())
                     {
+                        bool exit = false;
                         object current = execution.Current;
-                        cancel = cancelRequested || current is CancelRequest;
-                        replan = replanRequested || current is ReplanRequest;
 
-                        // Do not yield break! Must break the loop
-                        // so code can continue to allow builders
-                        // to dispose of the context and task list
-                        if (cancel || replan) break;
+                        do
+                        {
+                            cancel = cancelRequested || current is CancelRequest;
+                            replan = replanRequested || current is ReplanRequest;
+                            pause = pauseRequested || current is PauseRequest;
+
+                            // Do not yield break! Must break the loop
+                            // so code can continue to allow builders
+                            // to dispose of the context and task list
+                            if (cancel || replan)
+                            {
+                                exit = true;
+                                break;
+                            }
+
+                            if (pause)
+                            {
+                                yield return null;
+                            }
+
+                        } while (pause);
+
+                        if (exit) break;
 
                         yield return current;
                     }
@@ -148,6 +173,7 @@ namespace HHG.UtilityAI.Runtime
         private void Cleanup()
         {
             // Reset request flags
+            pauseRequested = false;
             cancelRequested = false;
             replanRequested = false;
 
@@ -155,6 +181,11 @@ namespace HHG.UtilityAI.Runtime
             contextBuilder.Dispose(context);
             taskBuilder.Dispose(tasks);
         }
+    }
+
+    public class PauseRequest
+    {
+        public static readonly PauseRequest Instance = new PauseRequest();
     }
 
     public class ReplanRequest
