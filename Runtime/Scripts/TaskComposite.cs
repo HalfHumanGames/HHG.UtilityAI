@@ -9,9 +9,9 @@ namespace HHG.UtilityAI.Runtime
 
         public override IEnumerator Execute(TContext context)
         {
-            foreach (Task<TContext> action in Tasks)
+            foreach (Task<TContext> task in Tasks)
             {
-                yield return action.Execute(context);
+                yield return task.Execute(context);
             }
         }
 

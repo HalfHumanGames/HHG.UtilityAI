@@ -69,6 +69,7 @@ namespace HHG.UtilityAI.Runtime
                 // So use StartCoroutineSliced to do over several frames
                 yield return CoroutineUtil.StartCoroutineSliced(validTasks, sliceSize, ComputeScore);
 
+                bool exit = false;
                 bool pause = false;
                 bool cancel = false;
                 bool replan = false;
@@ -81,9 +82,11 @@ namespace HHG.UtilityAI.Runtime
 
                     while (execution.MoveNext())
                     {
-                        bool exit = false;
                         object current = execution.Current;
+                        yield return current;
 
+                        // Check for requests AFTER doing yield return current
+                        // Otherwise it'll skip requests made later in the frame
                         do
                         {
                             cancel = cancelRequested || current is CancelRequest;
@@ -107,8 +110,6 @@ namespace HHG.UtilityAI.Runtime
                         } while (pause);
 
                         if (exit) break;
-
-                        yield return current;
                     }
                 }
 
